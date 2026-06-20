@@ -1,7 +1,7 @@
 {
   "name": "Microsoft Edge",
   "short_name": "Edge",
-  "start_url": "/",
+  "start_url": "/index.html",
   "display": "standalone",
   "background_color": "#2b2b2b",
   "theme_color": "#2b2b2b",
