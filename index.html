@@ -21,15 +21,32 @@
 <body>
 
     <div class="logo">microsoft edge</div>
-    <input type="text" class="search-bar" placeholder="Where to next?">
+    <input type="text" class="search-bar" id="search" placeholder="Where to next?">
 
     <!-- Register Service Worker to enable Chrome native installation button -->
     <script>
+        // --- 1. Service Worker Registration ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
                     .then(reg => console.log('Service Worker Registered!'))
                     .catch(err => console.log('Service Worker Failed:', err));
+            });
+        }
+
+        // --- 2. Live Bing Search Functionality ---
+        // Ensure your search input tag has id="search" (e.g., <input type="text" id="search" ...>)
+        const searchInput = document.getElementById('search');
+
+        if (searchInput) {
+            searchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    const query = encodeURIComponent(searchInput.value.trim());
+                    if (query !== "") {
+                        // Redirects directly to Bing with the search term and UK country code
+                        window.location.href = `https://bing.com{query}&cc=gb`;
+                    }
+                }
             });
         }
     </script>
