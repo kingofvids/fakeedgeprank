@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microsoft Edge</title>
+    <!-- Link the PWA Manifest File -->
+    <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/png" href="/icons/edge-192.png">
+    <style>
+        body {
+            margin: 0; padding: 0; background-color: #2b2b2b; color: white;
+            font-family: 'Segoe UI', Tahoma, sans-serif; display: flex;
+            flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh; overflow: hidden;
+        }
+        .logo { font-size: 42px; color: #0078d7; margin-bottom: 20px; font-weight: 300; }
+        .search-bar { width: 500px; padding: 12px; background: #3b3b3b; border: 2px solid #555; color: white; }
+    </style>
+</head>
+<body>
+
+    <div class="logo">microsoft edge</div>
+    <input type="text" class="search-bar" placeholder="Where to next?">
+
+    <!-- Register Service Worker to enable Chrome native installation button -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(reg => console.log('Service Worker Registered!'))
+                    .catch(err => console.log('Service Worker Failed:', err));
+            });
+        }
+    </script>
+</body>
+</html>
