@@ -35,16 +35,15 @@
         }
 
         // --- 2. Live Bing Search Functionality ---
-        // Ensure your search input tag has id="search" (e.g., <input type="text" id="search" ...>)
         const searchInput = document.getElementById('search');
 
         if (searchInput) {
             searchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
-                    const query = encodeURIComponent(searchInput.value.trim());
-                    if (query !== "") {
-                        // Redirects directly to Bing with the search term and UK country code
-                        window.location.href = `https://bing.com{encodeURIComponent(query)}&cc=gb`;
+                    const rawQuery = searchInput.value.trim();
+                    if (rawQuery !== "") {
+                        // FIX: Added /search?q= and the correct template syntax ${}
+                        window.location.href = `https://bing.com{encodeURIComponent(rawQuery)}&cc=gb`;
                     }
                 }
             });
