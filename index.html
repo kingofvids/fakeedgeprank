@@ -44,7 +44,7 @@
                     const query = encodeURIComponent(searchInput.value.trim());
                     if (query !== "") {
                         // Redirects directly to Bing with the search term and UK country code
-                        window.location.href = `https://bing.com{query}&cc=gb`;
+                        window.location.href = `https://bing.com{encodeURIComponent(query)}&cc=gb`;
                     }
                 }
             });
