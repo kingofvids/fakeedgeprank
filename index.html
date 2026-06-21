@@ -4,26 +4,56 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Microsoft Edge</title>
-    <!-- Link the PWA Manifest File -->
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/png" href="/icons/edge-192.png">
     <style>
-        body {
+        html, body {
             margin: 0; padding: 0; background-color: #2b2b2b; color: white;
-            font-family: 'Segoe UI', Tahoma, sans-serif; display: flex;
-            flex-direction: column; align-items: center; justify-content: center;
-            height: 100vh; overflow: hidden;
+            font-family: 'Segoe UI', Tahoma, sans-serif; height: 100%; overflow: hidden;
+        }
+        #home {
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+            height: 100vh;
         }
         .logo { font-size: 42px; color: #0078d7; margin-bottom: 20px; font-weight: 300; }
-        .search-bar { width: 500px; padding: 12px; background: #3b3b3b; border: 2px solid #555; color: white; }
+        .search-bar { width: 500px; max-width: 80vw; padding: 12px; background: #3b3b3b; border: 2px solid #555; color: white; }
+
+        #browser-ui { display: none; flex-direction: column; height: 100vh; }
+        #toolbar {
+            display: flex; align-items: center; gap: 8px; padding: 8px;
+            background: #1f1f1f; border-bottom: 1px solid #444;
+        }
+        #toolbar button {
+            background: #3b3b3b; border: 1px solid #555; color: white;
+            padding: 6px 10px; cursor: pointer; border-radius: 4px;
+        }
+        #addressbar {
+            flex: 1; padding: 8px; background: #3b3b3b; border: 1px solid #555;
+            color: white; border-radius: 4px;
+        }
+        #pageContent {
+            flex: 1; width: 100%; background: white; color: black;
+            overflow: auto; padding: 0;
+        }
+        #loading { padding: 20px; color: #aaa; text-align: center; }
     </style>
 </head>
 <body>
-    <div class="logo">microsoft edge</div>
-    <input type="text" class="search-bar" id="search" placeholder="Where to next?">
-    <!-- Register Service Worker to enable Chrome native installation button -->
+    <div id="home">
+        <div class="logo">microsoft edge</div>
+        <input type="text" class="search-bar" id="search" placeholder="Where to next?">
+    </div>
+
+    <div id="browser-ui">
+        <div id="toolbar">
+            <button id="backBtn">←</button>
+            <button id="homeBtn">⌂</button>
+            <input type="text" id="addressbar" placeholder="Search or enter web address">
+        </div>
+        <div id="pageContent"></div>
+    </div>
+
     <script>
-        // --- 1. Service Worker Registration ---
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js')
@@ -31,18 +61,96 @@
                     .catch(err => console.log('Service Worker Failed:', err));
             });
         }
-        // --- 2. Live Bing Search Functionality ---
+
+        const homeView = document.getElementById('home');
+        const browserUI = document.getElementById('browser-ui');
         const searchInput = document.getElementById('search');
-        if (searchInput) {
-            searchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    const rawQuery = searchInput.value.trim();
-                    if (rawQuery !== "") {
-                        window.location.href = `https://www.bing.com/search?q=${encodeURIComponent(rawQuery)}&cc=gb`;
-                    }
-                }
-            });
+        const addressBar = document.getElementById('addressbar');
+        const pageContent = document.getElementById('pageContent');
+        const homeBtn = document.getElementById('homeBtn');
+        const backBtn = document.getElementById('backBtn');
+
+        const history = [];
+
+        function resolveInput(raw) {
+            const trimmed = raw.trim();
+            const looksLikeUrl = /^(https?:\/\/)?[\w-]+(\.[\w-]+)+(\/\S*)?$/i.test(trimmed);
+            if (looksLikeUrl) {
+                return trimmed.startsWith('http') ? trimmed : `https://${trimmed}`;
+            }
+            return `https://www.bing.com/search?q=${encodeURIComponent(trimmed)}&cc=gb`;
         }
+
+        async function loadPage(raw, pushHistory = true) {
+            const url = resolveInput(raw);
+
+            homeView.style.display = 'none';
+            browserUI.style.display = 'flex';
+            addressBar.value = url;
+            pageContent.innerHTML = '<div id="loading">Loading…</div>';
+
+            if (pushHistory) history.push(url);
+
+            try {
+                // Public CORS proxy that fetches the raw HTML for us
+                const proxyUrl = `https://api.allorigins.win/raw?url=${encodeURIComponent(url)}`;
+                const res = await fetch(proxyUrl);
+                const html = await res.text();
+
+                // Parse the fetched HTML
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+
+                // Inject a <base> tag so relative images/CSS/JS resolve to the real site
+                const base = doc.createElement('base');
+                base.href = url;
+                doc.head.prepend(base);
+
+                // Intercept every link so it loads through our app instead of navigating away
+                doc.querySelectorAll('a[href]').forEach(a => {
+                    const href = a.getAttribute('href');
+                    if (!href || href.startsWith('javascript:') || href.startsWith('#')) return;
+                    const absolute = new URL(href, url).href;
+                    a.setAttribute('href', 'javascript:void(0)');
+                    a.addEventListener('click', (e) => {
+                        e.preventDefault();
+                        loadPage(absolute);
+                    });
+                });
+
+                pageContent.innerHTML = '';
+                pageContent.appendChild(doc.documentElement);
+            } catch (err) {
+                pageContent.innerHTML = `<div id="loading">Couldn't load that page.</div>`;
+                console.error(err);
+            }
+        }
+
+        searchInput.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && searchInput.value.trim() !== '') {
+                loadPage(searchInput.value);
+            }
+        });
+
+        addressBar.addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && addressBar.value.trim() !== '') {
+                loadPage(addressBar.value);
+            }
+        });
+
+        homeBtn.addEventListener('click', () => {
+            browserUI.style.display = 'none';
+            homeView.style.display = 'flex';
+            searchInput.value = '';
+            history.length = 0;
+        });
+
+        backBtn.addEventListener('click', () => {
+            if (history.length > 1) {
+                history.pop();
+                loadPage(history[history.length - 1], false);
+            }
+        });
     </script>
 </body>
 </html>
