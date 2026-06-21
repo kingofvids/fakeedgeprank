@@ -19,10 +19,8 @@
     </style>
 </head>
 <body>
-
     <div class="logo">microsoft edge</div>
     <input type="text" class="search-bar" id="search" placeholder="Where to next?">
-
     <!-- Register Service Worker to enable Chrome native installation button -->
     <script>
         // --- 1. Service Worker Registration ---
@@ -33,17 +31,14 @@
                     .catch(err => console.log('Service Worker Failed:', err));
             });
         }
-
         // --- 2. Live Bing Search Functionality ---
         const searchInput = document.getElementById('search');
-
         if (searchInput) {
             searchInput.addEventListener('keypress', (e) => {
                 if (e.key === 'Enter') {
                     const rawQuery = searchInput.value.trim();
                     if (rawQuery !== "") {
-                        // FIX: Added /search?q= and the correct template syntax ${}
-                        window.location.href = `https://bing.com{encodeURIComponent(rawQuery)}&cc=gb`;
+                        window.location.href = `https://www.bing.com/search?q=${encodeURIComponent(rawQuery)}&cc=gb`;
                     }
                 }
             });
